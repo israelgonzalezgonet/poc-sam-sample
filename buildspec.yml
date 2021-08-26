@@ -12,9 +12,10 @@ phases:
   pre_build:
     commands:
       - echo "Getting Database details.."
-      - DBSERVER=$(echo $SECRET | jq -r '.DBendpoint')
-      - DBUser=$(echo $SECRET | jq -r '.DBuser')
-      - DBPassword=$(echo $SECRET | jq -r '.DBpassword')
+      - DBSERVER=$(echo $SECRET | jq -r 'host')
+      - DBUser=$(echo $SECRET | jq -r 'username)
+      - DBPassword=$(echo $SECRET | jq -r 'password')
+      - echo "my username ${DBUser}"
   build:
     commands:
       - echo "List source folder.."
