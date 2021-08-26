@@ -13,7 +13,7 @@ phases:
     commands:
       - echo "Getting Database details.."
       - DBSERVER=$(echo $SECRET | jq -r '.host')
-      - DBUser=$(echo $SECRET | jq -r '.username)
+      - DBUser=$(echo $SECRET | jq -r '.username')
       - DBPassword=$(echo $SECRET | jq -r '.password')
       - echo "my username ${DBUser}"
   build:
