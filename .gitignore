@@ -130,3 +130,9 @@ $RECYCLE.BIN/
 .aws-sam/
 events/event.json
 hello-world/tests/unit/test-handler.js
+
+
+# Clean branch
+template.yaml
+hello-world/
+template.yaml
