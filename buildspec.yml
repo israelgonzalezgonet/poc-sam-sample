@@ -1,7 +1,26 @@
 version: 0.2
+env:
+  secrets-manager:
+    SECRET: db-connection-secret
 phases:
+  install:
+    runtime-versions:
+      dotnet: 3.1
+    commands:
+      - apt-get update
+      - apt-get install -y jq mysql-client
+  pre_build:
+    commands:
+      - echo "Getting Database details.."
+      - DBSERVER=$(echo $SECRET | jq -r '.DBendpoint')
+      - DBUser=$(echo $SECRET | jq -r '.DBuser')
+      - DBPassword=$(echo $SECRET | jq -r '.DBpassword')
   build:
     commands:
-      - sam build
-      - sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --stack-name poc-sam-sample-app -t template.yaml --s3-bucket sam-cli-bucket-templates-us-west-2-dev --capabilities CAPABILITY_IAM
-        
+      - echo "List source folder.."
+      - ls -la
+  post_build:
+    commands:
+      - echo "Connecting to ${DBSERVER} & running MySQL query.."
+      - mysql -h ${DBSERVER} -P 3306 -u ${DBUser} -p${DBPassword} poccicd < database.sql
+      - echo "Done."
