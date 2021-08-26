@@ -23,5 +23,5 @@ phases:
   post_build:
     commands:
       - echo "Connecting to ${DBSERVER} & running MySQL query.."
-      - mysql -h ${DBSERVER} -P 3306 -u ${DBUser} -p${DBPassword} poccicd < database.sql
+      - mysql -h ${DBSERVER} -P 3306 -u ${DBUser} -p${DBPassword} poccicd < update.sql
       - echo "Done."

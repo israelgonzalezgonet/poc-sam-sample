@@ -24,16 +24,3 @@ CREATE SCHEMA IF NOT EXISTS `mydb` DEFAULT CHARACTER SET utf8 ;
 -- -----------------------------------------------------
 CREATE SCHEMA IF NOT EXISTS `report_palace` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci ;
 USE `mydb` ;
-
--- -----------------------------------------------------
--- Table `report_palace`.`status_report`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `report_palace`.`status_report` (
-  `state_report_id` INT NOT NULL AUTO_INCREMENT,
-  `decription` VARCHAR(1024) NULL DEFAULT NULL,
-  `status` VARCHAR(512) NOT NULL,
-  `is_active` TINYINT(1) NOT NULL DEFAULT '1',
-  PRIMARY KEY (`state_report_id`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8mb4
-COLLATE = utf8mb4_0900_ai_ci;
