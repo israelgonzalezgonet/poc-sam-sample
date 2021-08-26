@@ -8,19 +8,513 @@ SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 
 
+USE `report_palace` ;
+
 -- -----------------------------------------------------
--- Table `mydb`.`subreports`
+-- Table `report_palace`.`anomaly_status`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`subreports` (
-  `idsubreports` BIGINT NOT NULL AUTO_INCREMENT,
-  `scheme_identifier` NVARCHAR(36) NOT NULL,
-  `params` JSON NOT NULL,
+CREATE TABLE IF NOT EXISTS `report_palace`.`anomaly_status` (
+  `anomaly_state_id` INT NOT NULL AUTO_INCREMENT,
+  `status` VARCHAR(512) NOT NULL,
+  `description` VARCHAR(1024) NULL DEFAULT NULL,
+  `is_active` TINYINT(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`anomaly_state_id`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`users`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`users` (
+  `username` VARCHAR(250) NULL DEFAULT NULL,
+  `is_active` TINYINT(1) NULL DEFAULT '1',
+  `user_id` NVARCHAR(36) NOT NULL,
+  PRIMARY KEY (`user_id`),
+  UNIQUE INDEX `user_id_UNIQUE` (`user_id` ASC) )
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`anomalies`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`anomalies` (
+  `anomaly message` VARCHAR(2048) NOT NULL,
+  `creation_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `anomaly_id` NVARCHAR(36) NOT NULL,
+  `anomaly_state_id` INT NOT NULL,
+  `report_created_id` NVARCHAR(36) NOT NULL,
+  `user_id` NVARCHAR(36) NOT NULL,
+  PRIMARY KEY (`anomaly_id`, `anomaly_state_id`, `report_created_id`, `user_id`),
+  UNIQUE INDEX `anomaly_id_UNIQUE` (`anomaly_id` ASC) ,
+  INDEX `fk_anomalies_anomaly_status1_idx` (`anomaly_state_id` ASC) ,
+  INDEX `fk_anomalies_reports_created1_idx` (`report_created_id` ASC) ,
+  INDEX `fk_anomalies_users1_idx` (`user_id` ASC) ,
+  CONSTRAINT `fk_anomalies_anomaly_status1`
+    FOREIGN KEY (`anomaly_state_id`)
+    REFERENCES `report_palace`.`anomaly_status` (`anomaly_state_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_anomalies_reports_created1`
+    FOREIGN KEY (`report_created_id`)
+    REFERENCES `report_palace`.`reports_created` (`report_created_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_anomalies_users1`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `report_palace`.`users` (`user_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`configurations`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`configurations` (
+  `configuration_id` NVARCHAR(36) NOT NULL,
+  `is_active` TINYINT(1) NOT NULL DEFAULT '1',
+  `creation_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `automatic_generation` TINYINT(1) NOT NULL DEFAULT 0,
+  `Category` NVARCHAR(250) NULL,
+  `GeneralSearch` TINYINT(1) NOT NULL DEFAULT 1,
+  `Exportation` JSON NULL,
+  `schemeidentifier` NVARCHAR(36) NOT NULL,
+  PRIMARY KEY (`configuration_id`),
+  UNIQUE INDEX `configuration_id_UNIQUE` (`configuration_id` ASC) )
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`autoships`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`autoships` (
+  `autoship_id` NVARCHAR(36) NOT NULL,
+  `mailbody` VARCHAR(2048) NOT NULL,
+  `secretkey` JSON NULL,
+  `configuration_id` NVARCHAR(36) NOT NULL,
+  PRIMARY KEY (`autoship_id`, `configuration_id`),
+  UNIQUE INDEX `autoship_id_UNIQUE` (`autoship_id` ASC) ,
+  INDEX `fk_autoships_configurations1_idx` (`configuration_id` ASC) ,
+  CONSTRAINT `fk_autoships_configurations1`
+    FOREIGN KEY (`configuration_id`)
+    REFERENCES `report_palace`.`configurations` (`configuration_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`autoships_by_emails`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`autoships_by_emails` (
+  `is_active` TINYINT(1) NOT NULL DEFAULT '1',
+  `autoship_id` NVARCHAR(36) NOT NULL,
+  `email` NVARCHAR(150) NOT NULL,
+  PRIMARY KEY (`autoship_id`),
+  CONSTRAINT `fk_autoships_by_users_autoships1`
+    FOREIGN KEY (`autoship_id`)
+    REFERENCES `report_palace`.`autoships` (`autoship_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`configurations_by_report_created`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`configurations_by_report_created` (
+  `is_active` TINYINT NOT NULL DEFAULT 1,
+  `configuration_id` NVARCHAR(36) NOT NULL,
+  `report_created_id` NVARCHAR(36) NOT NULL,
+  PRIMARY KEY (`configuration_id`, `report_created_id`),
+  INDEX `fk_configurations_by_report_created_reports_created1_idx` (`report_created_id` ASC) ,
+  CONSTRAINT `fk_configurations_by_report_created_configurations1`
+    FOREIGN KEY (`configuration_id`)
+    REFERENCES `report_palace`.`configurations` (`configuration_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_configurations_by_report_created_reports_created1`
+    FOREIGN KEY (`report_created_id`)
+    REFERENCES `report_palace`.`reports_created` (`report_created_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`configurations_by_users`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`configurations_by_users` (
+  `is_active` TINYINT(1) NOT NULL DEFAULT '1',
+  `configuration_id` NVARCHAR(36) NOT NULL,
+  `user_id` NVARCHAR(36) NOT NULL,
+  PRIMARY KEY (`configuration_id`, `user_id`),
+  INDEX `fk_configurations_by_users_users1_idx` (`user_id` ASC) ,
+  CONSTRAINT `fk_configurations_by_users_configurations1`
+    FOREIGN KEY (`configuration_id`)
+    REFERENCES `report_palace`.`configurations` (`configuration_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_configurations_by_users_users1`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `report_palace`.`users` (`user_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`report_headers`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`report_headers` (
+  `report_header_id` NVARCHAR(36) NOT NULL,
+  `report_created_id` NVARCHAR(36) NOT NULL,
+  PRIMARY KEY (`report_header_id`, `report_created_id`),
+  UNIQUE INDEX `report_header_id_UNIQUE` (`report_header_id` ASC) ,
+  INDEX `fk_report_headers_reports_created1_idx` (`report_created_id` ASC) ,
+  CONSTRAINT `fk_report_headers_reports_created1`
+    FOREIGN KEY (`report_created_id`)
+    REFERENCES `report_palace`.`reports_created` (`report_created_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`creation_dates`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`creation_dates` (
+  `creation_date_id` BIGINT NOT NULL,
+  `format` JSON NULL DEFAULT NULL,
+  `style` JSON NULL DEFAULT NULL,
+  `description` VARCHAR(1024) NULL DEFAULT NULL,
+  `value` VARCHAR(1024) NULL DEFAULT NULL,
+  `isvisible` TINYINT(1) NOT NULL DEFAULT '1',
+  `report_header_id` NVARCHAR(36) NOT NULL,
+  PRIMARY KEY (`creation_date_id`, `report_header_id`),
+  UNIQUE INDEX `creation_date_id_UNIQUE` (`creation_date_id` ASC) ,
+  INDEX `fk_creation_dates_report_headers1_idx` (`report_header_id` ASC) ,
+  CONSTRAINT `fk_creation_dates_report_headers1`
+    FOREIGN KEY (`report_header_id`)
+    REFERENCES `report_palace`.`report_headers` (`report_header_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`graphics`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`graphics` (
+  `graphic_id` BIGINT NOT NULL AUTO_INCREMENT,
+  `order` INT NOT NULL,
+  `title` VARCHAR(250) NULL DEFAULT NULL,
+  `type` VARCHAR(150) NOT NULL,
+  `series` JSON NOT NULL,
   `report_body_id` NVARCHAR(36) NOT NULL,
-  PRIMARY KEY (`idsubreports`, `report_body_id`),
-  INDEX `fk_subreports_report_bodies_idx` (`report_body_id` ASC) ,
-  CONSTRAINT `fk_subreports_report_bodies`
+  PRIMARY KEY (`graphic_id`, `report_body_id`),
+  UNIQUE INDEX `graphic_id_UNIQUE` (`graphic_id` ASC) ,
+  INDEX `fk_graphics_report_bodies1_idx` (`report_body_id` ASC) ,
+  CONSTRAINT `fk_graphics_report_bodies1`
     FOREIGN KEY (`report_body_id`)
     REFERENCES `report_palace`.`report_bodies` (`report_body_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`kpis`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`kpis` (
+  `kpi_id` BIGINT NOT NULL AUTO_INCREMENT,
+  `order` INT NOT NULL,
+  `head` JSON NULL DEFAULT NULL,
+  `body` JSON NULL DEFAULT NULL,
+  `footer` JSON NULL DEFAULT NULL,
+  `report_body_id` NVARCHAR(36) NOT NULL,
+  PRIMARY KEY (`kpi_id`, `report_body_id`),
+  UNIQUE INDEX `kpi_id_UNIQUE` (`kpi_id` ASC) ,
+  INDEX `fk_kpis_report_bodies1_idx` (`report_body_id` ASC) ,
+  CONSTRAINT `fk_kpis_report_bodies1`
+    FOREIGN KEY (`report_body_id`)
+    REFERENCES `report_palace`.`report_bodies` (`report_body_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`datatable`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`datatable` (
+  `datatable_id` BIGINT NOT NULL AUTO_INCREMENT,
+  `Columns` JSON NOT NULL,
+  `report_body_id` NVARCHAR(36) NOT NULL,
+  `id_secret_key` VARCHAR(36) NOT NULL,
+  `datatablecol` VARCHAR(45) NULL,
+  `fields` JSON NOT NULL,
+  PRIMARY KEY (`datatable_id`, `report_body_id`),
+  UNIQUE INDEX `report_body_row_id_UNIQUE` (`datatable_id` ASC) ,
+  INDEX `fk_report_body_rows_report_bodies1_idx` (`report_body_id` ASC) ,
+  CONSTRAINT `fk_report_body_rows_report_bodies1`
+    FOREIGN KEY (`report_body_id`)
+    REFERENCES `report_palace`.`report_bodies` (`report_body_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`report_descriptions`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`report_descriptions` (
+  `report_description_id` BIGINT NOT NULL AUTO_INCREMENT,
+  `style` JSON NULL DEFAULT NULL,
+  `description` VARCHAR(1024) NULL DEFAULT NULL,
+  `value` VARCHAR(1024) NULL DEFAULT NULL,
+  `isvisible` TINYINT(1) NOT NULL DEFAULT '1',
+  `report_header_id` NVARCHAR(36) NOT NULL,
+  PRIMARY KEY (`report_description_id`, `report_header_id`),
+  UNIQUE INDEX `report_description_id_UNIQUE` (`report_description_id` ASC) ,
+  INDEX `fk_report_descriptions_report_headers1_idx` (`report_header_id` ASC) ,
+  CONSTRAINT `fk_report_descriptions_report_headers1`
+    FOREIGN KEY (`report_header_id`)
+    REFERENCES `report_palace`.`report_headers` (`report_header_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`report_footers`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`report_footers` (
+  `report_footer_id` NVARCHAR(36) NOT NULL,
+  `report_created_id` NVARCHAR(36) NOT NULL,
+  PRIMARY KEY (`report_footer_id`, `report_created_id`),
+  UNIQUE INDEX `report_footer_id_UNIQUE` (`report_footer_id` ASC) ,
+  INDEX `fk_report_footers_reports_created1_idx` (`report_created_id` ASC) ,
+  CONSTRAINT `fk_report_footers_reports_created1`
+    FOREIGN KEY (`report_created_id`)
+    REFERENCES `report_palace`.`reports_created` (`report_created_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`report_footer_rows`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`report_footer_rows` (
+  `report_footer_row_id` BIGINT NOT NULL AUTO_INCREMENT,
+  `rows` JSON NOT NULL,
+  `report_footer_id` NVARCHAR(36) NOT NULL,
+  PRIMARY KEY (`report_footer_row_id`, `report_footer_id`),
+  UNIQUE INDEX `report_footer_row_id_UNIQUE` (`report_footer_row_id` ASC) ,
+  INDEX `fk_report_footer_rows_report_footers1_idx` (`report_footer_id` ASC) ,
+  CONSTRAINT `fk_report_footer_rows_report_footers1`
+    FOREIGN KEY (`report_footer_id`)
+    REFERENCES `report_palace`.`report_footers` (`report_footer_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`schedules`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`schedules` (
+  `schedule_id` NVARCHAR(36) NOT NULL,
+  `days` VARCHAR(1024) NOT NULL,
+  `start_time` TIMESTAMP NOT NULL,
+  `start_date` DATE NULL,
+  `is_active` TINYINT(1) ZEROFILL NOT NULL DEFAULT '1',
+  `end_date` DATE NULL,
+  `recurrence_type` INT NULL,
+  `recurrences` INT NULL,
+  PRIMARY KEY (`schedule_id`),
+  UNIQUE INDEX `schedule_id_UNIQUE` (`schedule_id` ASC) )
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`reports_scheduled_created`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`reports_scheduled_created` (
+  `schedule_id` NVARCHAR(36) NOT NULL,
+  `report_created_id` NVARCHAR(36) NOT NULL,
+  `execution_number` INT NOT NULL DEFAULT 1,
+  PRIMARY KEY (`schedule_id`, `report_created_id`),
+  INDEX `fk_reports_scheduled_created_schedules1_idx` (`schedule_id` ASC) ,
+  INDEX `fk_reports_scheduled_created_reports_created1_idx` (`report_created_id` ASC) ,
+  CONSTRAINT `fk_reports_scheduled_created_schedules1`
+    FOREIGN KEY (`schedule_id`)
+    REFERENCES `report_palace`.`schedules` (`schedule_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_reports_scheduled_created_reports_created1`
+    FOREIGN KEY (`report_created_id`)
+    REFERENCES `report_palace`.`reports_created` (`report_created_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`schedules_by_configurations`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`schedules_by_configurations` (
+  `schedule_by_configuration_id` BIGINT NOT NULL AUTO_INCREMENT,
+  `is_active` TINYINT(1) NOT NULL DEFAULT '1',
+  `configuration_id` NVARCHAR(36) NOT NULL,
+  `schedule_id` NVARCHAR(36) NOT NULL,
+  `configuration_name` NVARCHAR(150) NOT NULL DEFAULT 'Default',
+  `pagination` JSON NULL,
+  PRIMARY KEY (`schedule_by_configuration_id`, `configuration_id`, `schedule_id`),
+  INDEX `fk_schedules_by_configurations_configurations1_idx` (`configuration_id` ASC) ,
+  INDEX `fk_schedules_by_configurations_schedules1_idx` (`schedule_id` ASC) ,
+  CONSTRAINT `fk_schedules_by_configurations_configurations1`
+    FOREIGN KEY (`configuration_id`)
+    REFERENCES `report_palace`.`configurations` (`configuration_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_schedules_by_configurations_schedules1`
+    FOREIGN KEY (`schedule_id`)
+    REFERENCES `report_palace`.`schedules` (`schedule_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`subtitles`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`subtitles` (
+  `subtitle_id` BIGINT NOT NULL AUTO_INCREMENT,
+  `format` JSON NULL,
+  `style` JSON NULL,
+  `description` VARCHAR(1024) NULL,
+  `value` VARCHAR(1024) NULL,
+  `isvisible` TINYINT(1) NOT NULL DEFAULT '1',
+  `report_header_id` NVARCHAR(36) NOT NULL,
+  PRIMARY KEY (`subtitle_id`, `report_header_id`),
+  UNIQUE INDEX `subtitle_id_UNIQUE` (`subtitle_id` ASC) ,
+  INDEX `fk_subtitles_report_headers1_idx` (`report_header_id` ASC) ,
+  CONSTRAINT `fk_subtitles_report_headers1`
+    FOREIGN KEY (`report_header_id`)
+    REFERENCES `report_palace`.`report_headers` (`report_header_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`tenants`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`tenants` (
+  `tenant_id` NVARCHAR(36) NOT NULL,
+  `name` VARCHAR(250) NOT NULL,
+  `is_active` TINYINT(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`tenant_id`),
+  UNIQUE INDEX `tenant_id_UNIQUE` (`tenant_id` ASC) )
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`tenants_configurations`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`tenants_configurations` (
+  `tenant_configuration_id` NVARCHAR(36) NOT NULL,
+  `user_id` NVARCHAR(36) NOT NULL,
+  `tenant_id` NVARCHAR(36) NOT NULL,
+  `report_created_id` NVARCHAR(36) NOT NULL,
+  PRIMARY KEY (`tenant_configuration_id`, `user_id`, `tenant_id`, `report_created_id`),
+  UNIQUE INDEX `tenant_configuration_id_UNIQUE` (`tenant_configuration_id` ASC) ,
+  INDEX `fk_tenants_configurations_users1_idx` (`user_id` ASC) ,
+  INDEX `fk_tenants_configurations_tenants1_idx` (`tenant_id` ASC) ,
+  INDEX `fk_tenants_configurations_reports_created1_idx` (`report_created_id` ASC) ,
+  CONSTRAINT `fk_tenants_configurations_users1`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `report_palace`.`users` (`user_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_tenants_configurations_tenants1`
+    FOREIGN KEY (`tenant_id`)
+    REFERENCES `report_palace`.`tenants` (`tenant_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_tenants_configurations_reports_created1`
+    FOREIGN KEY (`report_created_id`)
+    REFERENCES `report_palace`.`reports_created` (`report_created_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `report_palace`.`titles`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `report_palace`.`titles` (
+  `title_id` BIGINT NOT NULL,
+  `format` JSON NULL,
+  `style` JSON NULL,
+  `description` VARCHAR(1024) NULL DEFAULT NULL,
+  `value` VARCHAR(1024) NULL DEFAULT NULL,
+  `isvisible` TINYINT(1) NOT NULL DEFAULT '1',
+  `report_header_id` NVARCHAR(36) NOT NULL,
+  PRIMARY KEY (`title_id`, `report_header_id`),
+  UNIQUE INDEX `title_id_UNIQUE` (`title_id` ASC) ,
+  INDEX `fk_titles_report_headers1_idx` (`report_header_id` ASC) ,
+  CONSTRAINT `fk_titles_report_headers1`
+    FOREIGN KEY (`report_header_id`)
+    REFERENCES `report_palace`.`report_headers` (`report_header_id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+

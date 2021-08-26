@@ -4,8 +4,6 @@ env:
     SECRET: db-connection-secret
 phases:
   install:
-    # runtime-versions:
-    #   dotnet: 3.1
     commands:
       - apt-get update
       - apt-get install -y jq mysql-client
